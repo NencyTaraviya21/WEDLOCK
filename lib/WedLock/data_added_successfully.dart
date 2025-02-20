@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:wedlock_admin/WedLock/userlist.dart';
 
+import 'package:wedlock_admin/WedLock/userlist.dart';
 
 class DataAddedSuccessfully extends StatefulWidget {
   const DataAddedSuccessfully({super.key});
@@ -32,7 +32,7 @@ class _DataAddedSuccessfullyState extends State<DataAddedSuccessfully> {
           padding: EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-                colors: [Colors.pink.shade100, Colors.pink.shade300]),
+                colors: [Colors.pink.shade400, Colors.pink.shade700]),
             color: Colors.white70, // Darker container color
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
@@ -48,14 +48,14 @@ class _DataAddedSuccessfullyState extends State<DataAddedSuccessfully> {
             children: [
               Icon(
                 Icons.check_circle,
-                color: Colors.white70,
+                color: Colors.white,
                 size: 60,
               ),
               SizedBox(height: 20),
               Text(
                 "DATA ADDED SUCCESSFULLY",
                 style: TextStyle(
-                  color: Colors.pink.shade700,
+                  color: Colors.white,
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -65,14 +65,11 @@ class _DataAddedSuccessfullyState extends State<DataAddedSuccessfully> {
               Text(
                 "Your data has been successfully stored.",
                 style: TextStyle(
-                  color: Colors.pink.shade700,
+                  color: Colors.white,
                   fontSize: 16,
                 ),
                 textAlign: TextAlign.center,
               ),
-              // CheckboxListTile(,value: true, onChanged: (value) {
-              //
-              // },)
               SizedBox(height: 20),
             ],
           ),

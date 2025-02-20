@@ -74,16 +74,22 @@ class User {
   void favUser({
     required int id,
     required String firstname,
+    required String lastname,
     required String phone,
     required String email,
     required String dob,
     required String gender,
-    required String lastname,
     required String city,
     required String hobbies,
+    int isFav=1,
   }) {
+    if (id == null) {
+      print("Error: ID cannot be null");
+      return;
+    }
+
     Map<String, dynamic> map = {
-      ID: id,
+      ID: id, // Ensure id is not null
       FIRSTNAME: firstname,
       LASTNAME: lastname,
       PHONE: phone,
@@ -92,9 +98,10 @@ class User {
       GENDER: gender,
       CITY: city,
       HOBBIES: hobbies,
+      ISFAV: isFav,
     };
 
-    if (!favUserList.any((user) => user[id] == id)) {
+    if (!favUserList.any((user) => user[ID] == id)) {
       favUserList.add(map);
       print("Added to favorites: $firstname");
     } else {
@@ -103,8 +110,11 @@ class User {
   }
 
   void favDeleteUser(int id) {
-    favUserList.removeWhere((user) => user[id] == id);
+    if (id == null) {
+      print("Error: ID cannot be null");
+      return;
+    }
+    favUserList.removeWhere((user) => user[ID] == id);
     print("Removed user with ID: $id from favorites.");
   }
-
 }

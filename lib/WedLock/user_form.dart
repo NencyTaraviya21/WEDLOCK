@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wedlock_admin/Utils/string_const.dart';
 import 'package:wedlock_admin/WedLock/data_added_successfully.dart';
 import 'package:wedlock_admin/WedLock/crud.dart';
+import 'package:wedlock_admin/WedLock/database/my_database.dart';
 
 class UserForm extends StatefulWidget {
   UserForm({super.key});
@@ -11,6 +13,7 @@ class UserForm extends StatefulWidget {
 }
 
 class _UserFormState extends State<UserForm> {
+  final MyDatabase myDatabase = MyDatabase();
   User users = User();
   TextEditingController email = TextEditingController();
   TextEditingController phone = TextEditingController();
@@ -19,6 +22,7 @@ class _UserFormState extends State<UserForm> {
   TextEditingController password = TextEditingController();
   TextEditingController confirm_password = TextEditingController();
   TextEditingController dateController = TextEditingController();
+  final ValueNotifier<int?> ageNotifier = ValueNotifier<int?>(null);
 
   final List<String> userList = [];
 
@@ -73,6 +77,7 @@ class _UserFormState extends State<UserForm> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
+      appBar: AppBar(),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -132,6 +137,7 @@ class _UserFormState extends State<UserForm> {
                       hinttext: 'Mobile number',
                       labeltext: 'Mobile number',
                       key_type: TextInputType.number,
+                      formaters:  FilteringTextInputFormatter.digitsOnly,
                       validation: (value) {
                         if (value == null ||
                             value.isEmpty ||
@@ -166,6 +172,7 @@ class _UserFormState extends State<UserForm> {
                       textcontroller: password,
                       hinttext: 'Password',
                       labeltext: 'Password',
+                      obscureText: true,
                       validation: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter a password';
@@ -184,6 +191,7 @@ class _UserFormState extends State<UserForm> {
                       textcontroller: confirm_password,
                       hinttext: 'Confirm Password',
                       labeltext: 'Confirm Password',
+                      obscureText: true,
                       validation: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please confirm your password';
@@ -205,6 +213,7 @@ class _UserFormState extends State<UserForm> {
                                 filled: true,
                                 fillColor: Color(0xFFBfae3f1),
                                 labelText: 'Hobbies',
+
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                   borderSide: BorderSide(width: 1.5),
@@ -222,6 +231,7 @@ class _UserFormState extends State<UserForm> {
                                           title: Text('Playing',
                                               style: TextStyle(
                                                 fontSize: 17,
+                                                overflow: TextOverflow.ellipsis,
                                               )),
                                           value: hobbies.contains('Playing'),
                                           onChanged: (value) {
@@ -234,15 +244,16 @@ class _UserFormState extends State<UserForm> {
                                             });
                                           },
                                           controlAffinity: ListTileControlAffinity
-                                              .leading, // Places the checkbox on the left
+                                              .leading,
                                           contentPadding: EdgeInsets
-                                              .zero, // Removes extra padding
+                                              .zero,
                                         ),
                                       ),
                                       Expanded(
                                         child: CheckboxListTile(
                                           title: Text('Singing',
-                                              style: TextStyle(fontSize: 17)),
+                                              style: TextStyle(fontSize: 17),
+                                            overflow: TextOverflow.ellipsis,),
                                           value: hobbies.contains('Singing'),
                                           onChanged: (value) {
                                             setState(() {
@@ -261,7 +272,9 @@ class _UserFormState extends State<UserForm> {
                                       Expanded(
                                         child: CheckboxListTile(
                                           title: Text('Swimming',
-                                              style: TextStyle(fontSize: 17)),
+                                              style: TextStyle(fontSize: 17),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                           value: hobbies.contains('Swimming'),
                                           onChanged: (value) {
                                             setState(() {
@@ -284,7 +297,8 @@ class _UserFormState extends State<UserForm> {
                                       Expanded(
                                         child: CheckboxListTile(
                                           title: Text('Dancing',
-                                              style: TextStyle(fontSize: 17)),
+                                              style: TextStyle(fontSize: 17),
+                                            overflow: TextOverflow.ellipsis,),
                                           value: hobbies.contains('Dancing'),
                                           onChanged: (value) {
                                             setState(() {
@@ -303,7 +317,8 @@ class _UserFormState extends State<UserForm> {
                                       Expanded(
                                         child: CheckboxListTile(
                                           title: Text('Reading',
-                                              style: TextStyle(fontSize: 17)),
+                                              style: TextStyle(fontSize: 17),
+                                            overflow: TextOverflow.ellipsis,),
                                           value: hobbies.contains('Reading'),
                                           onChanged: (value) {
                                             setState(() {
@@ -315,14 +330,15 @@ class _UserFormState extends State<UserForm> {
                                             });
                                           },
                                           controlAffinity:
-                                              ListTileControlAffinity.leading,
+                                          ListTileControlAffinity.leading,
                                           contentPadding: EdgeInsets.zero,
                                         ),
                                       ),
                                       Expanded(
                                         child: CheckboxListTile(
                                           title: Text('Writing',
-                                              style: TextStyle(fontSize: 17)),
+                                              style: TextStyle(fontSize: 17),
+                                            overflow: TextOverflow.ellipsis,),
                                           value: hobbies
                                               .contains('Plubic speaking'),
                                           onChanged: (value) {
@@ -442,50 +458,55 @@ class _UserFormState extends State<UserForm> {
                         ),
                         Expanded(
                           child: TextFormField(
-                              controller: dateController,
-                              readOnly: true,
-                              decoration: InputDecoration(
-                                hintText: 'dd/mm/yyyy',
-                                hintStyle:
-                                    TextStyle(color: Colors.pink.shade700),
-                                enabledBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.pink.shade700,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderSide: BorderSide(
-                                    color: Colors.pink.shade700,
-                                    width: 1.0, // Dark border when focused
-                                  ),
-                                ),
-                                suffixIcon: IconButton(
-                                  color: Colors.pink.shade700,
-                                  onPressed: () async {
-                                    date = await showDatePicker(
-                                      context: context,
-                                      firstDate: DateTime(1991),
-                                      lastDate: DateTime(2007),
-                                    );
-                                    if (date != null) {
-                                      dateController.text =
-                                          "${date!.day.toString().padLeft(2, '0')}/${date!.month.toString().padLeft(2, '0')}/${date!.year}";
-                                    }
-                                    int calculatedAge =
-                                        DateTime.now().year - date!.year;
-                                    if (DateTime.now().month < date!.month ||
-                                        (DateTime.now().month == date!.month &&
-                                            DateTime.now().day < date!.day)) {
+                            controller: dateController,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              hintText: 'dd/mm/yyyy',
+                              hintStyle: TextStyle(color: Colors.pink.shade700),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.pink.shade700),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(color: Colors.pink.shade700, width: 1.0),
+                              ),
+                              suffixIcon: IconButton(
+                                color: Colors.pink.shade700,
+                                onPressed: () async {
+                                  DateTime? date = await showDatePicker(
+                                    context: context,
+                                    firstDate: DateTime(1991),
+                                    lastDate: DateTime(2007),
+                                  );
+                                  if (date != null) {
+                                    dateController.text =
+                                    "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+
+                                    int calculatedAge = DateTime.now().year - date.year;
+                                    if (DateTime.now().month < date.month ||
+                                        (DateTime.now().month == date.month &&
+                                            DateTime.now().day < date.day)) {
                                       calculatedAge--;
                                     }
-                                    setState(() {
-                                      dateController.text = dateController.text;
-                                      age = calculatedAge;
-                                    });
-                                  },
-                                  icon: Icon(Icons.date_range),
-                                ),
-                              )),
+
+                                    ageNotifier.value = calculatedAge; // Update ValueNotifier
+                                  }
+                                },
+                                icon: Icon(Icons.date_range),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        ValueListenableBuilder<int?>(
+                          valueListenable: ageNotifier,
+                          builder: (context, age, child) {
+                            return age != null
+                                ? Text(
+                              "Age: $age years",
+                              style: TextStyle(fontSize: 15, color: Colors.pink.shade700),
+                            )
+                                : SizedBox();
+                          },
                         ),
                         SizedBox(width: 10),
                         if (age != null)
@@ -505,28 +526,41 @@ class _UserFormState extends State<UserForm> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              setState(() {
-                                users.addUser(
-                                    firstname: firstname.text,
-                                    phone: phone.text,
-                                    email: email.text,
-                                    dob: dateController.text,
-                                    gender: selectedGender,
-                                    lastname: lastname.text,
-                                    city: selectedCity,
-                                    hobbies: hobbies.join(','),
-                                    age: age
-                                );
+                          onPressed: () async {
+                                if (_formKey.currentState!.validate()) {
+                                // users.addUser(
+                                //     firstname: firstname.text,
+                                //     phone: phone.text,
+                                //     email: email.text,
+                                //     dob: dateController.text,
+                                //     gender: selectedGender,
+                                //     lastname: lastname.text,
+                                //     city: selectedCity,
+                                //     hobbies: hobbies.join(','),
+                                //     age: age
+                                // );
+                                Map<String, dynamic> userData = {
+                                  NAME: '${firstname.text} ${lastname.text}',
+                                  PHONE: phone.text,
+                                  EMAIL: email.text,
+                                  DOB: dateController.text,
+                                  GENDER: selectedGender,
+                                  CITY: selectedCity,
+                                  DB_HOBBIES: hobbies.join(','),
+                                  AGE: ageNotifier.value ?? 0,
+                                  IS_FAV: 0,
+                                };
+                                await myDatabase.addUser(userData);
                                 print('added: ${firstname.text}');
-                                Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            DataAddedSuccessfully()));
-                              });
-                            }
+                                print(AGE);
+                                setState(() {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              DataAddedSuccessfully()));
+                                });
+                              };
                           },
                           child: Text('Save'),
                           style: ElevatedButton.styleFrom(
@@ -585,6 +619,7 @@ class _UserFormState extends State<UserForm> {
       String? hinttext,
       labeltext,
       TextInputType? key_type,
+        bool obscureText = false,
       String? Function(String?)? validation,
       TextInputFormatter? formaters}) {
     return TextFormField(
@@ -592,6 +627,7 @@ class _UserFormState extends State<UserForm> {
       inputFormatters: formaters != null ? [formaters] : null,
       validator: validation,
       controller: textcontroller,
+      obscureText: obscureText,
       decoration: InputDecoration(
         hintText: hinttext,
         labelText: labeltext,

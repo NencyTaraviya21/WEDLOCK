@@ -1,8 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedlock_admin/WedLock/about_us.dart';
 import 'package:wedlock_admin/WedLock/crud.dart';
 import 'package:wedlock_admin/WedLock/favroite_user.dart';
+import 'package:wedlock_admin/WedLock/global.dart';
+import 'package:wedlock_admin/WedLock/login_register_page.dart';
 import 'package:wedlock_admin/WedLock/user_form.dart';
 import 'package:wedlock_admin/WedLock/userlist.dart';
 class DashboardWedLock extends StatefulWidget {
@@ -23,7 +26,7 @@ class _DashboardMatrimonyState extends State<DashboardWedLock> {
     {
       'icon': Icons.favorite,
       'text': 'Favorites',
-      'class_name': () => FavroiteUser()
+      'class_name': () => FavUserList()
     },
   ];
 
@@ -71,6 +74,24 @@ class _DashboardMatrimonyState extends State<DashboardWedLock> {
             getDrawerList(
                 'About us', Icons.person, Icons.keyboard_arrow_right_sharp,
                 fileName: AboutUsPage()),
+            ListTile(
+              leading: Icon(Icons.logout, color: Colors.pink.shade700),
+              title: Text('Logout', style: TextStyle(fontSize: 18)),
+              onTap: () async {
+                bool confirmed = await _showLogoutDialog(context);
+                if (confirmed) {
+                  SharedPreferences prefs = await SharedPreferences.getInstance();
+                  await prefs.clear(); // Clear all saved data (logout)
+                  globalUserName = ''; // Reset global username
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => WedLockLoginRegister()), // Redirect to login
+                        (Route<dynamic> route) => false, // Remove all previous routes
+                  );
+                }
+              },
+            ),
           ],
         ),
       ),
@@ -96,16 +117,17 @@ class _DashboardMatrimonyState extends State<DashboardWedLock> {
     );
   }
 
-  Widget getDrawerList(menuName, leadingIcon, trailingIcon, {fileName}) {
+  Widget getDrawerList(String title, IconData leadingIcon, IconData trailingIcon, {required Widget fileName}) {
     return ListTile(
+      leading: Icon(leadingIcon, color: Colors.pink.shade700),
+      title: Text(title, style: TextStyle(fontSize: 18)),
+      trailing: Icon(trailingIcon, color: Colors.pink.shade700),
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) {
-          return fileName;
-        }));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => fileName),
+        );
       },
-      title: Text(menuName),
-      leading: Icon(leadingIcon),
-      trailing: Icon(trailingIcon),
     );
   }
 
@@ -149,4 +171,24 @@ class _DashboardMatrimonyState extends State<DashboardWedLock> {
       ),
     );
   }
+  Future<bool> _showLogoutDialog(BuildContext context) async {
+    return await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Logout"),
+        content: Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text("Logout", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    ) ?? false;
+  }
 }
+

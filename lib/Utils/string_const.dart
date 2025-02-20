@@ -1,6 +1,5 @@
-import 'package:flutter/cupertino.dart';
-
-const String NAME = 'name';
+const String USER_ID = 'UserId';
+const String NAME = 'User_Name';
 const String NUMBER = 'num';
 const String LOGIN = 'Login';
 const String SIGNUP = 'Signup';
@@ -14,6 +13,11 @@ const String CITY = 'City';
 const String HOBBIES = 'Hobbies';
 const String AGE = 'Age';
 const String ID = 'id';
+const String ISFAV = 'isFav' ;
+const String TABLE_NAME = 'Table_Name';
+const String IS_FAV = 'is_fav';
+const String DB_HOBBIES = 'User_Hobbies';
+
 
 
 void printWarning(String text) {

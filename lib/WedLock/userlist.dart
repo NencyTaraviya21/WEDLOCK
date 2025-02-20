@@ -1,10 +1,13 @@
+import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart';
 import 'package:wedlock_admin/Utils/string_const.dart';
 import 'package:wedlock_admin/WedLock/crud.dart';
 import 'dart:ui';
 
 import 'package:wedlock_admin/WedLock/dashboard_matrimony.dart';
+import 'package:wedlock_admin/WedLock/database/my_database.dart';
 
 class Userlist extends StatefulWidget {
   const Userlist({super.key});
@@ -14,6 +17,7 @@ class Userlist extends StatefulWidget {
 }
 
 class _UserlistState extends State<Userlist> {
+  MyDatabase myDatabase = MyDatabase();
   // void _edituser(BuildContext context) {
   //   showDialog(
   //     context: context,
@@ -48,23 +52,28 @@ class _UserlistState extends State<Userlist> {
 
   void initState() {
     super.initState();
-    setState(() {
-      usersList = List.from(User.userList);
-      print(usersList);
-      usersList.forEach((user) {
-        user['isFavorite'] = user['isFavorite'] ?? false;
-      });
-      // Initialize favoriteUsers with IDs of users who are already favorites
-      Set<int> favoriteUsers = usersList
-          .where((user) => user['isFavorite'] == true)
-          .map((user) => user['id'] as int? ?? usersList.indexOf(user)) // Explicitly cast to int?
-          .where((id) => id != null) // Filter out any null values from the cast
-          .cast<int>() // Cast the remaining values to int
-          .toSet();
-    });
+    // setState(() {
+    //   // usersList = List.from(myDatabase.usersList);
+    //   // print(usersList);
+    //   // favoriteStatus = List.generate(usersList.length, (index) => false);
+    // });
+    fetchUsers();
+    setState(() {});
   }
 
-  bool isFav = false;
+  List<Map<String, dynamic>> currentUsersList = [];
+  Future<void> fetchUsers() async {
+    await myDatabase.fetchUsersFromTable();
+    currentUsersList = myDatabase.usersList; // Initially, display all users
+    setState(() {});
+  }
+
+  int _selectedItem = -1;
+  void _onTap(int index) {
+    setState(() {
+      _selectedItem = index;
+    });
+  }
 
   void searchUsers(String value) async {
     var results = await users.searchDetail(searchData: value);
@@ -76,12 +85,15 @@ class _UserlistState extends State<Userlist> {
   User users = User();
   List<Map<String, dynamic>> usersList = [];
   List<Map<String, dynamic>> filteredUserList = [];
+  int isFav = 0;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Color(0XFFfcf0f9),
       appBar: AppBar(
         iconTheme: IconThemeData(
-          color: Colors.white, // Change your color here
+          color: Colors.white,
         ),
         title: Text(
           'UserList',
@@ -94,6 +106,14 @@ class _UserlistState extends State<Userlist> {
         ),
         centerTitle: true,
         backgroundColor: Colors.pink.shade700,
+        actions: [
+          IconButton(
+              onPressed: () {},
+              icon: Icon(
+                Icons.sort_by_alpha_sharp,
+                size: 35,
+              )),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(8.0),
@@ -106,6 +126,10 @@ class _UserlistState extends State<Userlist> {
                   decoration: InputDecoration(
                     hintText: 'Search...',
                     prefixIcon: Icon(Icons.search),
+                    suffixIcon: IconButton(
+                        onPressed: () {},
+                        icon: Icon(Icons.tune_outlined),
+                        color: Colors.grey.shade600),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide(color: Colors.grey),
@@ -119,7 +143,7 @@ class _UserlistState extends State<Userlist> {
                 ),
               ), // SEARCH
               Expanded(
-                child: usersList.isEmpty
+                child: currentUsersList.isEmpty
                     ? Center(
                         child: Text(
                           'No profile available.',
@@ -127,88 +151,147 @@ class _UserlistState extends State<Userlist> {
                         ),
                       )
                     : ListView.builder(
-                        itemCount: usersList.length,
+                        itemCount: currentUsersList.length,
                         itemBuilder: (context, index) {
-                          final user = usersList[index];
+                          final user = currentUsersList[index];
+                          isFav = user[IS_FAV];
                           return Card(
                             elevation: 10,
                             child: Stack(
                               children: [
                                 Padding(
                                   padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      getText(index, Icons.person,
-                                          '${user[FIRSTNAME] ?? 'N/A'} ${user[LASTNAME] ?? ''}'),
-                                      getText(index, Icons.email, user[EMAIL]),
-                                      getText(index, Icons.calendar_today, user[AGE]),
-                                      Align(
-                                        alignment: Alignment.bottomRight,
-                                        child: TextButton(
-                                          onPressed: () => _showBottomSheet(
-                                              context, usersList[index], index),
-                                          child: const Text('View more',
-                                              style: TextStyle(
-                                                  color: Colors.blue)),
-                                        ),
+                                  // child: Column(
+                                  //   crossAxisAlignment:
+                                  //       CrossAxisAlignment.start,
+                                  //   children: [
+                                  //     getText(index, Icons.person,
+                                  //         '${user[FIRSTNAME] ?? 'N/A'} ${user[LASTNAME] ?? ''}'),
+                                  //     getText(index, Icons.email, user[EMAIL]),
+                                  //     getText(index, Icons.calendar_today,
+                                  //         user[AGE]),
+                                  //     Align(
+                                  //       alignment: Alignment.bottomRight,
+                                  //       child: TextButton(
+                                  //         onPressed: () => _showBottomSheet(
+                                  //             context, usersList[index], index),
+                                  //         child: const Text('View more',
+                                  //             style: TextStyle(
+                                  //                 color: Colors.blue)),
+                                  //       ),
+                                  //     ),
+                                  //   ],
+                                  // ),
+                                  child: InkWell(
+                                    onTap: () => _showBottomSheet(
+                                        context, user, index), // Pass index
+                                    borderRadius: BorderRadius.circular(15),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            backgroundColor:
+                                                Colors.pink.shade700,
+                                            radius: 30,
+                                            child: Text(
+                                              (user[NAME] != null &&
+                                                      user[NAME].isNotEmpty)
+                                                  ? user[NAME][0].toUpperCase()
+                                                  : 'U',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '${user[NAME] ?? 'N/A'}',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                SingleChildScrollView(
+                                                    child: Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: Text(
+                                                        user[EMAIL] ?? 'N/A',
+                                                        style: const TextStyle(
+                                                            fontSize: 14),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        maxLines:
+                                                            1, // Ensures the text stays in one line
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                        ' | '), // Keeps separator visible
+                                                    Expanded(
+                                                      child: Text(
+                                                        '${user[AGE] ?? 'N/A'} years',
+                                                        style: const TextStyle(
+                                                            fontSize: 14),
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        maxLines: 1,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ))
+                                              ],
+                                            ),
+                                          ),
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Colors
+                                                  .pink[50], // Background color
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.grey
+                                                      .withOpacity(0.3),
+                                                  blurRadius: 5,
+                                                  spreadRadius: 2,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: IconButton(
+                                              icon: Icon(user[IS_FAV] == 1
+                                                  ? Icons.favorite_outlined
+                                                  : Icons.favorite_border),
+                                              color: user[IS_FAV] == 1
+                                                  ? Colors.pink[700]
+                                                  : Colors.pink[500],
+                                              onPressed: () {
+                                                isFav = isFav == 1 ? 0 : 1;
+                                                int user_id = user[USER_ID];
+                                                myDatabase.favUser(
+                                                    user_id, isFav);
+                                                fetchUsers();
+                                              },
+                                            ),
+                                          ), //fav
+                                          SizedBox(
+                                            width: 3,
+                                          ),
+                                        ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                                Positioned(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      IconButton(
-                                        onPressed: () {
-                                          toggleFavorite(user[ID]);
-                                        },
-                                        icon: Icon(
-                                          isFav ? Icons.favorite : Icons.favorite_border,
-                                          color: Colors.pink.shade700,
-                                        ),
-                                      ),
-                                      //fav
-                                      IconButton(
-                                          onPressed: () {
-                                            showDialog(
-                                                context: context,
-                                                builder: (context) {
-                                                  return CupertinoAlertDialog(
-                                                    title: Text('Delete'),
-                                                    content: Text(
-                                                        'Are you sure you wanna delete'),
-                                                    actions: [
-                                                      TextButton(
-                                                          onPressed: () {
-                                                            users.deleteUser(
-                                                                index);
-                                                            print(
-                                                                'data removed');
-                                                            Navigator.pop(
-                                                                context);
-                                                            setState(() {});
-                                                          },
-                                                          child: Text('Yes')),
-                                                      TextButton(
-                                                          onPressed: () {
-                                                            Navigator.pop(
-                                                                context);
-                                                          },
-                                                          child: Text('No'))
-                                                    ],
-                                                  );
-                                                });
-                                          },
-                                          icon: Icon(
-                                            Icons.delete,
-                                            color: Colors.brown,
-                                          )), //delete
-                                    ],
-                                  ),
-                                ), //buttons
                               ],
                             ),
                           );
@@ -221,25 +304,27 @@ class _UserlistState extends State<Userlist> {
                   width: 60,
                   child: Align(
                     alignment: Alignment.bottomRight,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => DashboardWedLock()));
-                      },
-                      child: Text(
-                        "OK",
-                        style: TextStyle(color: Colors.white, fontSize: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.pink[200], // Background color
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.pink[700]!.withOpacity(0.3),
+                            blurRadius: 5,
+                            spreadRadius: 2,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      style: ElevatedButton.styleFrom(
-                        shape: BeveledRectangleBorder(),
-                        backgroundColor:
-                            Colors.pink.shade700, // Button background color
-                        foregroundColor: Colors.white,
-                        minimumSize: Size(double.infinity,
-                            10), // Full width, increased height
-                        padding: EdgeInsets.symmetric(vertical: 15),
+                      child: IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => DashboardWedLock()));
+                        },
+                        icon: Icon(CupertinoIcons.home),
                       ),
                     ),
                   ),
@@ -269,6 +354,43 @@ class _UserlistState extends State<Userlist> {
     );
   }
 
+  void _deleteUser(int index, BuildContext context) async {
+    final userToDelete = usersList[index];
+
+    bool? confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return CupertinoAlertDialog(
+          title: const Text("Confirm Delete"),
+          content: Text(
+              "Are you sure you want to delete ${userToDelete[FIRSTNAME]} ${userToDelete[LASTNAME]}?"),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false), // Cancel
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true); // Confirm
+              },
+              child: const Text("Delete", style: TextStyle(color: Colors.red)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete == true) {
+      usersList.removeAt(index);
+      setState(() {});
+
+      // If needed, navigate back
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   void _showBottomSheet(
       BuildContext context, Map<String, dynamic>? user, int index) {
     if (user == null || user.isEmpty) {
@@ -277,6 +399,7 @@ class _UserlistState extends State<Userlist> {
     }
 
     print("User Data: $user");
+    print((user[NAME].split(" "))[0]);
 
     showModalBottomSheet(
       context: context,
@@ -285,131 +408,206 @@ class _UserlistState extends State<Userlist> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
       builder: (context) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.pink.shade700,
-                  child: Text(
-                    (user['FIRSTNAME'] != null && user['FIRSTNAME'].isNotEmpty)
-                        ? user['FIRSTNAME'][0].toUpperCase()
-                        : 'U',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                Text(
-                  'User Details',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.pink.shade700,
-                  ),
-                ),
-                Divider(color: Colors.pink.shade700, thickness: 2),
-                SizedBox(height: 10),
-                _buildDetailRow(Icons.person, 'Full Name',
-                    '${user[FIRSTNAME] ?? 'N/A'} ${user[LASTNAME] ?? ''}'),
-                _buildDetailRow(
-                    Icons.phone, 'Phone Number', user[PHONE] ?? 'N/A'),
-                _buildDetailRow(Icons.email, 'Email', user[EMAIL] ?? 'N/A'),
-                _buildDetailRow(
-                    Icons.calendar_today, 'Date of Birth', user[DOB] ?? 'N/A'),
-                _buildDetailRow(Icons.male, 'Gender', user[GENDER] ?? 'N/A'),
-                _buildDetailRow(Icons.location_on, 'City', user[CITY] ?? 'N/A'),
-                _buildDetailRow(
-                  Icons.videogame_asset,
-                  'Hobbies',
-                  (user[HOBBIES] is List<String>)
-                      ? (user[HOBBIES] as List<String>).join(', ')
-                      : (user[HOBBIES] != null
-                          ? user[HOBBIES].toString()
-                          : 'N/A'),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+        return Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    IconButton(
-                      onPressed: () => _editUser(context, index),
-                      icon: Icon(Icons.edit, color: Colors.pink.shade700),
-                    ),
-                    SizedBox(width: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.pink.shade700,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                    SizedBox(height: 10),
+                    CircleAvatar(
+                      radius: 50,
+                      backgroundColor: Colors.pink.shade700,
+                      child: Text(
+                        (user[NAME] != null && user[NAME].isNotEmpty)
+                            ? (user[NAME].split(" "))[0][0].toUpperCase()
+                            : 'U',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Close',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      ((user[NAME].split(" "))[0] != null &&
+                              (user[NAME].split(" "))[0].isNotEmpty)
+                          ? (user[NAME].split(" "))[0] + "'s Details"
+                          : 'User details',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.pink.shade700,
                       ),
                     ),
+                    Divider(color: Colors.pink.shade700, thickness: 2),
+                    SizedBox(height: 10),
+                    _buildDetailRow(
+                        Icons.person, 'Full Name', '${user[NAME] ?? 'N/A'}'),
+                    _buildDetailRow(
+                        Icons.phone, 'Phone Number', user[PHONE] ?? 'N/A'),
+                    _buildDetailRow(Icons.email, 'Email', user[EMAIL] ?? 'N/A'),
+                    _buildDetailRow(Icons.cake_rounded, 'Date of Birth',
+                        user[DOB] ?? 'N/A'),
+                    _buildDetailRow(
+                      Icons.hourglass_bottom,
+                      'Age',
+                      user[AGE]?.toString() ?? 'N/A',
+                    ),
+                    _buildDetailRow(
+                        Icons.male, 'Gender', user[GENDER] ?? 'N/A'),
+                    _buildDetailRow(
+                        Icons.location_on, 'City', user[CITY] ?? 'N/A'),
+                    _buildDetailRow(
+                      Icons.videogame_asset,
+                      'Hobbies',
+                      (user[DB_HOBBIES] is List<String>)
+                          ? (user[DB_HOBBIES] as List<String>).join(', ')
+                          : (user[DB_HOBBIES] != null
+                              ? user[DB_HOBBIES].toString()
+                              : 'N/A'),
+                    ),
+                    SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.pink[100], // Background color
+                            borderRadius: BorderRadius.circular(
+                                22), // Adjust for more/less rounding// Background color
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.3),
+                                blurRadius: 5,
+                                spreadRadius: 2,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              if (currentUsersList.isEmpty ||
+                                  index >= currentUsersList.length) {
+                                print("Error: Invalid index or empty list.");
+                                return;
+                              }
+                              _editUser(context, index);
+                            },
+                            icon: Icon(Icons.edit, color: Colors.pink[700]),
+                          ),
+                        ),
+                        SizedBox(width: 15),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.pink[100], // Background color
+                            borderRadius:
+                                BorderRadius.circular(22), // Background color
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.3),
+                                blurRadius: 5,
+                                spreadRadius: 2,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              showCupertinoDialog(
+                                context: context,
+                                builder: (context) => CupertinoAlertDialog(
+                                  title: Text("Confirm Deletion"),
+                                  content: Text(
+                                      "Are you sure you want to delete this user?"),
+                                  actions: [
+                                    CupertinoDialogAction(
+                                      child: Text("Cancel"),
+                                      onPressed: () => Navigator.of(context)
+                                          .pop(), // Close dialog
+                                    ),
+                                    CupertinoDialogAction(
+                                      child: Text("Delete",
+                                          style: TextStyle(color: Colors.red)),
+                                      onPressed: () {
+                                        Navigator.of(context).pop();
+                                        Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    Userlist()));
+                                        myDatabase.deleteUser(user[USER_ID]);
+                                        fetchUsers(); // Refresh list
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            icon: Icon(Icons.delete, color: Colors.pink[500]),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 20),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                icon: Icon(Icons.close, color: Colors.pink[700], size: 24),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  void _saveUser(
-      int index,
-      TextEditingController nameController,
-      TextEditingController emailController,
-      TextEditingController phoneController,
-      TextEditingController dobController,
-      String selectedGender,
-      String selectedCity,
-      List<String> selectedHobbies) {
-    // Create the updated user data
-    Map<String, dynamic> updatedUser = {
-      FIRSTNAME: nameController.text,
-      EMAIL: emailController.text,
-      PHONE: phoneController.text,
-      DOB: dobController.text,
-      GENDER: selectedGender,
-      CITY: selectedCity,
-      HOBBIES: selectedHobbies,
-    };
+  //
+  // void _saveUser(
+  //     int index,
+  //     TextEditingController nameController,
+  //     TextEditingController emailController,
+  //     TextEditingController phoneController,
+  //     TextEditingController dobController,
+  //     String selectedGender,
+  //     String selectedCity,
+  //     List<String> selectedHobbies) {
+  //   Map<String, dynamic> updatedUser = {
+  //     FIRSTNAME: nameController.text,
+  //     EMAIL: emailController.text,
+  //     PHONE: phoneController.text,
+  //     DOB: dobController.text,
+  //     GENDER: selectedGender,
+  //     CITY: selectedCity,
+  //     HOBBIES: selectedHobbies,
+  //   };
+  //   users.editUser(id: index, newData: updatedUser);
+  //   setState(() {
+  //     usersList = List.from(User.userList); // Create a new list reference
+  //   });
+  //   Navigator.pop(context);
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text('User updated successfully!'),
+  //       duration: Duration(seconds: 2),
+  //     ),
+  //   );
+  // }
 
-    // Update the data
-    users.editUser(id: index, newData: updatedUser);
-
-    // Update the local state
-    setState(() {
-      usersList = List.from(User.userList); // Create a new list reference
-    });
-
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('User updated successfully!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-// Helper widget for rows
   Widget _buildDetailRow(IconData? icon, String? title, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -443,69 +641,25 @@ class _UserlistState extends State<Userlist> {
     );
   }
 
-  Set<int> favoriteUsers = {};
-
-
-  void toggleFavorite(int userId) {
-    setState(() {
-      if (favoriteUsers.contains(userId)) {
-        favoriteUsers.remove(userId);
-        users.favDeleteUser(userId);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('User removed from favorites!'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        final user = usersList.firstWhere(
-              (u) => u[ID] == userId,
-          orElse: () => {},
-        );
-
-        if (user != null) {
-          favoriteUsers.add(userId);
-          users.favUser(
-            id: userId,
-            firstname: user[FIRSTNAME],
-            lastname: user[LASTNAME],
-            phone: user[PHONE],
-            email: user[EMAIL],
-            dob: user[DOB],
-            gender: user[GENDER],
-            city: user[CITY],
-            hobbies: user[HOBBIES],
-          );
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${user[FIRSTNAME]} added to favorites!'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    });
-  }
-
-
-
-
+  List<Map<String, dynamic>> allUsers = [];
+  List<Map<String, dynamic>> favUserList = [];
 
 //edit
   void _editUser(BuildContext context, int index) {
-    final user = usersList[index];
+    final user = currentUsersList[index];
     final _formKey = GlobalKey<FormState>();
 
     TextEditingController nameController =
-        TextEditingController(text: '${user[FIRSTNAME]} ${user[LASTNAME]}');
+        TextEditingController(text: user[NAME]);
     TextEditingController emailController =
         TextEditingController(text: user[EMAIL]);
     TextEditingController phoneController =
         TextEditingController(text: user[PHONE]);
     TextEditingController dobController =
         TextEditingController(text: user[DOB] ?? "");
+
+    ValueNotifier<int?> ageNotifier =
+        ValueNotifier<int?>(user[AGE] ?? null); // For age update
 
     List<String> hobbies = [
       "Playing",
@@ -516,11 +670,19 @@ class _UserlistState extends State<Userlist> {
       "Writing"
     ];
 
-    List<String> selectedHobbies = user[HOBBIES] is List
-        ? List<String>.from(user[HOBBIES])
-        : (user[HOBBIES] != null ? [user[HOBBIES].toString()] : []);
+    List<String> selectedHobbies = user[DB_HOBBIES] is List
+        ? List<String>.from(user[DB_HOBBIES])
+        : (user[DB_HOBBIES] != null
+            ? user[DB_HOBBIES]
+                .toString()
+                .split(',')
+                .map((e) => e.trim())
+                .toList()
+            : []);
 
-    String selectedGender = user[GENDER] ?? null;
+    print("Selected Hobbies during Edit: $selectedHobbies");
+
+    String selectedGender = user[GENDER] ?? "";
     String selectedCity = user[CITY] ?? "Select City";
 
     showModalBottomSheet(
@@ -593,22 +755,100 @@ class _UserlistState extends State<Userlist> {
                             return null;
                           }),
                       SizedBox(height: 15),
-                      _buildCheckboxList(
-                          "Hobbies", hobbies, selectedHobbies, setState),
-                      SizedBox(height: 10),
-                      _buildGenderSelector(selectedGender, (value) {
-                        setState(() {
-                          selectedGender = value.toString();
-                        });
-                      }),
-                      SizedBox(height: 10),
                       _buildCityDropdown(selectedCity, (value) {
                         setState(() {
                           selectedCity = value.toString();
                         });
                       }),
-                      SizedBox(height: 10),
-                      _buildDatePicker(context, dobController, setState),
+                      SizedBox(height: 15),
+                      _buildCheckboxList(
+                          "Hobbies",
+                          [
+                            "Playing",
+                            "Singing",
+                            "Swimming",
+                            "Dancing",
+                            "Reading",
+                            "Writing"
+                          ],
+                          selectedHobbies,
+                          setState),
+                      SizedBox(height: 15),
+                      _buildGenderSelector(selectedGender, (value) {
+                        setState(() {
+                          selectedGender = value.toString();
+                        });
+                      }),
+                      SizedBox(height: 15),
+                      Row(
+                        children: [
+                          Text(
+                            'Select DOB',
+                            style: TextStyle(color: Colors.pink.shade700),
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              controller: dobController,
+                              readOnly: true,
+                              decoration: InputDecoration(
+                                hintText: 'dd/mm/yyyy',
+                                hintStyle:
+                                    TextStyle(color: Colors.pink.shade700),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide:
+                                      BorderSide(color: Colors.pink.shade700),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.pink.shade700, width: 1.0),
+                                ),
+                                suffixIcon: IconButton(
+                                  color: Colors.pink.shade700,
+                                  onPressed: () async {
+                                    DateTime? date = await showDatePicker(
+                                      context: context,
+                                      firstDate: DateTime(1991),
+                                      lastDate: DateTime(2007),
+                                    );
+                                    if (date != null) {
+                                      dobController.text =
+                                          "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}";
+
+                                      int calculatedAge =
+                                          DateTime.now().year - date.year;
+                                      if (DateTime.now().month < date.month ||
+                                          (DateTime.now().month == date.month &&
+                                              DateTime.now().day < date.day)) {
+                                        calculatedAge--;
+                                      }
+
+                                      ageNotifier.value =
+                                          calculatedAge; // Update ValueNotifier
+                                    }
+                                  },
+                                  icon: Icon(Icons.date_range),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          ValueListenableBuilder<int?>(
+                            valueListenable: ageNotifier,
+                            builder: (context, age, child) {
+                              return age != null
+                                  ? Text(
+                                      "Age: $age years",
+                                      style: TextStyle(
+                                          fontSize: 15,
+                                          color: Colors.pink.shade700),
+                                    )
+                                  : SizedBox();
+                            },
+                          ),
+                        ],
+                      ), //dob
+
                       SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -617,37 +857,34 @@ class _UserlistState extends State<Userlist> {
                             style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red),
                             onPressed: () => Navigator.pop(context),
-                            child: Text("Reset"),
+                            child: Text("Cancel"),
                           ),
                           ElevatedButton(
-                            onPressed: () {
-                              if (_formKey.currentState!.validate() &&
-                                  selectedGender != null &&
-                                  selectedCity != "Select City" &&
-                                  selectedHobbies.isNotEmpty) {
-                                _saveUser(
-                                    index,
-                                    nameController,
-                                    emailController,
-                                    phoneController,
-                                    dobController,
-                                    selectedGender,
-                                    selectedCity,
-                                    selectedHobbies);
-                                Navigator.pop(context);
-                                setState(() {});
+                            onPressed: () async {
+                              if (_formKey.currentState!.validate()) {
+                                Map<String, dynamic> updatedUser = {
+                                  NAME: nameController.text.trim(),
+                                  EMAIL: emailController.text.trim(),
+                                  PHONE: phoneController.text.trim(),
+                                  DOB: dobController.text.trim(),
+                                  AGE: ageNotifier.value,
+                                  GENDER: selectedGender,
+                                  DB_HOBBIES: selectedHobbies.join(","),
+                                };
+
+                                await myDatabase.editUser(
+                                    updatedUser, user[USER_ID]);
+                                fetchUsers();
+
+                                setState(() {
+                                  currentUsersList[index] = updatedUser;
+                                });
+                                Navigator.of(context).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                      content:
-                                          Text('User updated successfully!'),
-                                      duration: Duration(seconds: 2)),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                      content: Text(
-                                          'Please fill all required fields correctly'),
-                                      duration: Duration(seconds: 2)),
+                                    content: Text('User updated successfully!'),
+                                    duration: Duration(seconds: 2),
+                                  ),
                                 );
                               }
                             },
@@ -671,6 +908,10 @@ class _UserlistState extends State<Userlist> {
       String selectedGender, Function(String) onChanged) {
     return Row(
       children: [
+        Icon(
+          Icons.wc_rounded,
+          color: Colors.pink[700],
+        ),
         Radio(
           value: "Male",
           groupValue: selectedGender,
@@ -687,11 +928,8 @@ class _UserlistState extends State<Userlist> {
     );
   }
 
-  Widget _buildCheckboxList(
-      String title,
-      List<String> items,
-      List<String> selectedItems,
-      Function setState) {
+  Widget _buildCheckboxList(String title, List<String> items,
+      List<String> selectedItems, Function setState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -704,6 +942,7 @@ class _UserlistState extends State<Userlist> {
         ),
         SizedBox(height: 8),
         Container(
+          width: double.infinity,
           padding: EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: Colors.pink.shade50,
@@ -713,6 +952,7 @@ class _UserlistState extends State<Userlist> {
           child: Wrap(
             spacing: 20,
             runSpacing: 10,
+            alignment: WrapAlignment.start,
             children: items.map((item) {
               bool isSelected = selectedItems.contains(item);
 
@@ -744,7 +984,10 @@ class _UserlistState extends State<Userlist> {
                         });
                       },
                     ),
-                    Text(item),
+                    Text(
+                      item,
+                      style: TextStyle(fontSize: 14),
+                    ),
                   ],
                 ),
               );
@@ -768,11 +1011,17 @@ class _UserlistState extends State<Userlist> {
       controller: textcontroller,
       decoration: InputDecoration(
         hintText: hinttext,
-        prefixIcon: Icon(icon),
+        hintStyle: TextStyle(
+          color: Colors.pink.shade700,
+          fontSize: 14,
+        ),
+        prefixIcon: Icon(
+          icon,
+          color: Colors.pink[700],
+        ),
         labelStyle: TextStyle(
           color: Colors.pink.shade700,
         ),
-        hintStyle: TextStyle(color: Colors.pink.shade700),
         enabledBorder: OutlineInputBorder(
           borderSide: BorderSide(
             color: Colors.pink.shade700,
@@ -790,9 +1039,7 @@ class _UserlistState extends State<Userlist> {
         labelText: "Select DOB",
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.calendar_today),
-
       ),
-
       readOnly: true,
       validator: (value) {
         if (value == null || value.isEmpty) {
